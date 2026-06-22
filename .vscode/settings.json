@@ -1,0 +1,36 @@
+{
+    // === 终端：使用 MSYS2 UCRT64 Shell，避免 Anaconda MinGW 干扰 ===
+    "terminal.integrated.defaultProfile.windows": "MSYS2 UCRT64",
+    "terminal.integrated.profiles.windows": {
+        "MSYS2 UCRT64": {
+            "path": "D:/mys64/ucrt64.exe",
+            "args": [],
+            "env": {
+                "MSYSTEM": "UCRT64",
+                "CHERE_INVOKING": "1"
+            }
+        },
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        }
+    },
+
+    // === Code Runner：使用 MSYS2 shell 编译运行 ===
+    "code-runner.executorMap": {
+        "cpp": "cd $dir && D:/mys64/ucrt64/bin/g++.exe -std=c++17 -O2 -Wall $fileName -o $fileNameWithoutExt.exe && ./$fileNameWithoutExt.exe"
+    },
+    "code-runner.runInTerminal": true,
+    "code-runner.saveFileBeforeRun": true,
+
+    // === C/C++ 扩展 ===
+    "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
+    "C_Cpp.default.compilerPath": "D:/mys64/ucrt64/bin/g++.exe",
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.intelliSenseMode": "windows-gcc-x64",
+
+    // === 文件排除（减少侧边栏杂乱） ===
+    "files.exclude": {
+        "**/*.exe": true
+    }
+}

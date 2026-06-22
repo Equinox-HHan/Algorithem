@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "MSYS2-UCRT64-GCC",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "D:/mys64/ucrt64/include/c++/15.2.0",
+                "D:/mys64/ucrt64/include/c++/15.2.0/x86_64-w64-mingw32",
+                "D:/mys64/ucrt64/lib/gcc/x86_64-w64-mingw32/15.2.0/include",
+                "D:/mys64/ucrt64/include"
+            ],
+            "defines": [],
+            "compilerPath": "D:/mys64/ucrt64/bin/g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
