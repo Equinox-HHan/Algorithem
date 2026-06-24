@@ -202,3 +202,171 @@
 |s.empty()                |判断：检查集合是否为空                                    |
 |s.clear()                |清空：移除集合中的所有元素                                |
 ——————————————————————————————————————————————————————————————————————————————————————
+
+用 C++ STL 模拟树和图结构是算法竞赛和面试中的核心基本功。STL 提供了极高的灵活性，能够让我们在几行代码内迅速搭建出各种复杂的拓扑结构。
+
+总结来说，用 STL 模拟树和图主要有**三大通用套路**：
+
+---
+
+## 套路一：邻接表（Adjacency List）—— 最通用的标配
+
+无论是有向图、无向图、网（带权图）还是树，**`vector` 的数组**或 **`vector` 的 `vector**` 都是最常用的表达方式。
+
+### 1. 基础版（无权图/树）
+
+直接用一个容器数组，下标代表起点，容器内存储终点。
+
+```cpp
+#include <vector>
+using namespace std;
+
+const int MAXN = 10005; 
+vector<int> G[MAXN]; // 或者是 vector<vector<int>> G(n);
+
+// 加边函数
+void add_edge(int u, int v, bool bidirectional = false) {
+    G[u].push_back(v);
+    if (bidirectional) {
+        G[v].push_back(u); // 无向图或树
+    }
+}
+
+```
+
+### 2. 升级版（带权图/网）
+
+利用 `pair<int, int>` 将**终点**和**边权**打包。
+
+```cpp
+// first: 终点 v, second: 边权 w
+vector<pair<int, int>> G[MAXN]; 
+
+void add_edge(int u, int v, int w) {
+    G[u].push_back({v, w}); 
+}
+
+```
+
+### 3. 拓扑遍历通用模板（以 DFS 为例）
+
+```cpp
+void dfs(int u, int fa) { // fa 用于树形结构防止回流，图结构请换用 visited 数组
+    for (int v : G[u]) {
+        if (v == fa) continue; // 或者是 if(vis[v]) continue;
+        // 执行核心逻辑
+        dfs(v, u);
+    }
+}
+
+```
+
+---
+
+## 套路二：动态二叉树 —— 结构体与指针/索引的结合
+
+对于二叉树（如二叉搜索树、线段树、Huffman树），我们通常用结构体配合 STL。为了避免频繁 `new` 导致内存碎片和超时，常用结构体数组 + 索引（下标）模拟指针。
+
+### 1. 数组索引版（推荐，极其高效）
+
+使用 `int` 代替传统指针，`-1` 或 `0` 代表空节点。
+
+```cpp
+struct TreeNode {
+    int val;
+    int left = -1;  // 左孩子的数组下标
+    int right = -1; // 右孩子的数组下标
+};
+
+vector<TreeNode> tree; // 动态分配树节点池
+
+// 创建新节点并返回其下标
+int create_node(int val) {
+    tree.push_back({val, -1, -1});
+    return tree.size() - 1;
+}
+
+```
+
+### 2. 括号表达式/特殊输入建树（如 ZOJ 1097/1011）
+
+配合 `stringstream` 可以非常优雅地解析形如 `(A(B)(C))` 的树结构：
+
+```cpp
+#include <sstream>
+
+int parse(stringstream& ss) {
+    char ch;
+    int val;
+    if (!(ss >> ch) || ch == ')') return -1; // 遇到空或右括号返回
+    ss >> val; // 读取当前节点值
+    int u = create_node(val);
+    
+    // 递归建立左右子树
+    tree[u].left = parse(ss);
+    tree[u].right = parse(ss);
+    
+    ss >> ch; // 读掉匹配的右括号 ')'
+    return u;
+}
+
+```
+
+---
+
+## 套路三：高级拓扑动态维护 —— 映射与集合
+
+当图的节点**不是连续数字**（例如节点是字符串、离散的大整数），或者需要**动态高效删边、去重**时，需要祭出 `map` 和 `set`。
+
+### 1. 字符串节点 / 离散节点建图
+
+```cpp
+#include <map>
+#include <set>
+#include <string>
+
+// 节点是名字（string），邻接点用 set 存储可以自动去重且按字典序排序
+map<string, set<string>> dynamic_G; 
+
+void add_edge(string u, string v) {
+    dynamic_G[u].insert(v);
+}
+
+```
+
+### 2. 拓扑动态删边（如 Prufer 序列模拟，ZOJ 1097）
+
+如果算法要求频繁寻找“度为 1 的节点”并“断开其连边”，用 `set` 维护邻接表是最简单的（虽然常数略大，但写起来极快）：
+
+```cpp
+map<int, set<int>> adj;
+map<int, int> degree;
+
+void remove_edge(int u, int v) {
+    adj[u].erase(v);
+    adj[v].erase(u);
+    degree[u]--;
+    degree[v]--;
+}
+
+```
+
+---
+
+## 💡 核心避坑与优化指南
+
+1. **树与图的边界（Fa 变量 vs Vis 数组）**：
+* 在**树**的遍历中，因为没有环，你只需要传入一个 `fa`（父亲节点）参数，遍历时加上 `if (v == fa) continue;` 就能完美防止死循环。
+* 在**一般图**中，必须开一个 `vector<bool> vis(n, false);` 并在遍历时标记，否则会陷入环路死循环。
+
+
+2. **预留空间优化（`reserve`）**：
+* 如果已知节点数 $N$，在使用 `vector<int> G[MAXN]` 或 `vector<TreeNode> tree` 之前，先调用 `tree.reserve(N)`。这能防止 `vector` 频繁扩容复制，能显著带来 20%~30% 的常数提速。
+
+
+3. **点权与边权的分离**：
+* **点权**永远建议单独开一个独立数组 `vector<int> weight(N);` 存储，不要强行塞进邻接表里，保持图的拓扑结构和业务数据分离，代码会清晰很多。
+
+
+
+掌握了上面三个套路（`vector` 数组、结构体索引、`map/set` 动态维护），你基本可以闭眼写出绝大多数图论与树形题目的数据结构。你目前是在练习哪一类特定的图论算法（如最短路、生成树或树形DP）呢？
