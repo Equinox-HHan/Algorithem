@@ -1,7 +1,4 @@
-# 学期专业课复习笔记：
-
-
-***数据结构***
+# 数据结构
 
 ## 栈：先进后出
 
@@ -370,3 +367,190 @@ void remove_edge(int u, int v) {
 
 
 掌握了上面三个套路（`vector` 数组、结构体索引、`map/set` 动态维护），你基本可以闭眼写出绝大多数图论与树形题目的数据结构。你目前是在练习哪一类特定的图论算法（如最短路、生成树或树形DP）呢？
+
+
+
+
+# 递归和分治策略
+
+## 递归
+
+### 基本概念
+
+**适用的问题**
+1. 题目数据按照递归定义：Fibonacci
+2. 问题解法按照递归实现：回溯算法
+3. 数据结构适合使用递归：树的遍历和图的搜索
+
+**递归的组成**
+1. 边界条件
+2. 递归前进段
+3. 递归返回段
+
+### 典型例题
+
+- 集合全排列问题：
+```
+void permute(vector<int>& nums, int start, vector<vector<int>>& res) 
+{
+    if (start == nums.size()) 
+        {
+            res.push_back(nums); 
+            return; 
+        }
+    for (int i = start; i < nums.size(); i++) 
+    {
+        //if(i!=index&&nums[i]==nums[index])
+        {
+            continue;//去重全排列，开局记得sort
+        }
+        swap(nums[start], nums[i]);
+        permute(nums, start + 1, res);
+        swap(nums[start], nums[i]);  // 回溯恢复
+    }
+}
+```
+- 整数划分问题：
+```
+int split(int n,int m)
+{
+    if(n==1||m==1)
+    {
+        return 1;
+    }
+    else if(m>n)
+    {
+        return split(n,n)
+    }
+    else if(m==n)
+    {
+        return split(n,n-1)+1;
+    }
+    else
+    {
+        return split(n-m,m)+split(n,m-1);
+    }
+}
+void dfs(int remain, int max_val, vector<int>& path, vector<vector<int>>& ans)
+    {
+        // 终止条件：需要凑的数字刚好为 0 了
+        if (remain == 0) 
+        {
+            ans.push_back(path);
+            return;
+        }
+        // i 从 min(remain, max_val) 开始，保证我们选的数字不会超过剩下的量，也不会破坏降序规则
+        for (int i = min(remain, max_val); i >= 1; i--) 
+        {
+            // 做出选择
+            path.push_back(i);
+            
+            // 递归向下：还要凑 remain-i，并且下次选的数字不能超过 i
+            dfs(remain - i, i, path, ans);
+            
+            // 撤销选择（回溯），清理现场，为循环的下一次 i 做准备
+            path.pop_back();
+        }
+    }
+```
+
+
+## 分治策略
+
+### 基本概念
+
+**基本步骤**
+1. 将原问题分解为若干个与原问题形式相同的子问题
+2. 递归的求解子问题直到base case
+3. 将子问题的解merge得到原问题的解
+
+**适用的问题**
+- 问题具有容易得到的base case
+- 具有独立的最优子结构
+- 子问题能够merge得到全局解
+
+### 典型例题
+
+1. 二分搜索：数组必须有序O（logN）
+```
+int binarySearch(const vector<int>& arr,int target)
+{
+    int left=0;
+    int right=arr.size()-1;
+    while(left<=right)
+    {
+        int mid=left+(right-left)/2;
+        if(nums[mid]==target)
+        {
+            return 1;
+        }
+        else if(nums[mid]<target)
+        {
+            left=mid+1;
+        }
+        else
+        {
+            right=mid-1;
+        }
+    }
+    return -1;
+}
+```
+
+2. 选择问题：找到一个数组中第k小或者第k大的数
+**快排管两边，快选管一边。**
+**传统太死板，随机保平安。**
+**遇到重复多，国旗三路划分完。**
+随机快速选择（荷兰国旗三路划分）
+```
+void partation(int arr[],int l,int r,int x)
+{
+    First=l;
+    Last=r;
+    int i=l;
+    while(i<=Last)
+    {
+        if(arr[i]==x)
+        {
+            i++;
+        }
+        else if(arr[i]<x)
+        {
+            swap(arr[i],arr[First]);
+            i++;
+            First++;
+        }
+        else
+        {
+            swap(arr[i],arr[Last]);
+            Last--;
+        }
+    }
+}
+int RandomSelect(int arr[],int i)
+{
+    srand((unsigned)time(NULL));
+    int ans=0;
+    for(int l=0,r=MAX-1;l<=r;)
+    {
+        int randomIndex=l+rand()%(r-l+1);
+        int x=arr[randomIndex];
+        partation(arr,l,r,x);
+        if(i<First)
+        {
+            r=First-1;
+        }
+        else if(i>Last)
+        {
+            l=Last+1;
+        }
+        else
+        {
+            ans=arr[i];
+            break;
+        }
+    }
+    return ans;
+}
+```
+
