@@ -466,7 +466,7 @@ void dfs(int remain, int max_val, vector<int>& path, vector<vector<int>>& ans)
 
 **适用的问题**
 - 问题具有容易得到的base case
-- 具有独立的最优子结构
+- 能够分解为独立的子问题（满足计算上的独立性）
 - 子问题能够merge得到全局解
 
 ### 典型例题
@@ -554,3 +554,203 @@ int RandomSelect(int arr[],int i)
 }
 ```
 
+
+# 动态规划：用空间换时间的算法
+
+## 基本概念：
+
+**适用的条件**
+具有无后效性最优子结构（策略上的独立性，计算上的重叠性）
+
+>分治策略适合解决具有互相独立的子问题的问题，自顶向下计算后向上合并
+>动态规划则要具有无后效性的最优子结构，策略上独立但是计算上重叠
+>未来决策不依赖过去使得自底向上是最优雅的解决
+
+**动态规划步骤**
+1. 明确dp数组和下标的定义
+2. 找到状态转移方程（递推方程）
+3. 初始化dp数组确定边界条件
+4. 确定循环顺序
+
+### 典型例题：
+
+1. 矩阵连乘问题（区间DP）
+```
+// 【步骤 1】初始化基础状态：长度为 1 的区间，代价为 0
+    //（由于 vector 默认初始化为 0，这一步在代码中可省略，但逻辑上存在）
+    for (int i = 1; i <= n; ++i) 
+    {
+        dp[i][i] = 0;
+    }
+
+    // 【步骤 2】三层循环递推求解
+    // 第一层：枚举区间长度 len（从 2 开始，逐步扩大到 n）
+    for (int len = 2; len <= n; ++len)
+    {
+        // 第二层：枚举区间的起点 i（起点 i 的最大值要保证区间不越界）
+        for (int i = 1; i <= n - len + 1; ++i)
+        {
+            int j = i + len - 1; // 根据起点 i 和长度 len，计算出终点 j
+            dp[i][j] = INF; // 求最小值，先初始化为无穷大
+            // 第三层：在区间 [i, j) 之间枚举分裂点 k
+            // 将区间 [i, j] 划分为左半部分 [i, k] 和右半部分 [k + 1, j]
+            for (int k = i; k < j; ++k)
+            {
+                // 计算当前划分方式的代价：左区间代价 + 右区间代价 + 合并左右区间的代价
+                int cost = dp[i][k] + dp[k + 1][j] + p[i - 1] * p[k] * p[j];
+                // 如果找到更小的代价，更新 dp 数组并记录分裂点
+                if (cost < dp[i][j])
+                {
+                    dp[i][j] = cost;
+                    s[i][j] = k; 
+                }
+            }
+        }
+    }
+```
+
+2.最长公共子序列（双序列DP）
+```
+  for (int i = 1; i <= m; ++i)
+  {
+        for (int j = 1; j <= n; ++j)
+        {
+            // 注意：dp 索引比 string 索引大 1，所以对比的是 text1[i-1] 和 text2[j-1]
+            if (text1[i - 1] == text2[j - 1])
+            {
+                // 字符相同：当前字符加入 LCS，长度在左上方状态基础上 +1
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            }
+            else
+            {
+                // 字符不同：继承【退化一个字符】的两个状态中的最大值
+                dp[i][j] = std::max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+    // 【重构最优解】通过 dp 数组反向回溯，构造出具体的最长公共子序列
+    lcs_str = "";
+    int i = m, j = n;
+    while (i > 0 && j > 0)
+    {
+        if (text1[i - 1] == text2[j - 1])
+        {
+            // 当前字符相同，说明属于 LCS，将其加入结果
+            lcs_str.push_back(text1[i - 1]);
+            // 往左上方对角线回溯
+            i--;
+            j--;
+        } 
+        else if (dp[i - 1][j] >= dp[i][j - 1])
+        {
+            // 哪个状态值大，往哪个方向回溯
+            i--;
+        } 
+        else
+        {
+            j--;
+        }
+    }
+    // 因为是反向回溯，最后需要将字符串翻转
+    std::reverse(lcs_str.begin(), lcs_str.end());
+```
+
+3.最大子段和（线性DP）
+```
+    dp[0] = nums[0];
+    int max_sum = dp[0];
+
+    // 用于追踪最大子段的边界
+    int temp_start = 0; // 记录当前候选子段的起点
+    start = 0;
+    end = 0;
+    for (int i = 1; i < n; ++i) 
+    {
+        // 状态转移
+        if (dp[i - 1] > 0) 
+        {
+            // 前面的子段和为正，有益，加入
+            dp[i] = dp[i - 1] + nums[i];
+        } 
+        else 
+        {
+            // 前面的子段和为负，无益，丢弃，从当前位置重新开始
+            dp[i] = nums[i];
+            temp_start = i; // 开启一个新的子段起点
+        }
+        // 更新全局最大值，并记录当前的起止位置
+        if (dp[i] > max_sum) 
+        {
+            max_sum = dp[i];
+            start = temp_start;
+            end = i;
+        }
+    }
+
+int maxSubArrayStandard(const std::vector<int>& nums) 
+{
+    int n = nums.size();
+    if (n == 0) return 0;
+
+    int current_max = nums[0]; // 相当于 dp[i-1]
+    int global_max = nums[0];  // 记录遍历过程中的全局最大值
+
+    for (size_t i = 1; i < nums.size(); ++i) 
+    {
+        // 状态转移：是带上前面的一起，还是自己单干？
+        current_max = std::max(nums[i], current_max + nums[i]);
+        
+        // 更新全局最大值
+        global_max = std::max(global_max, current_max);
+    }
+
+    return global_max;
+}
+```
+
+4. 0-1背包问题（背包DP）
+```
+for (int i = 0; i < n; ++i) 
+    {
+        // 内层循环：逆序遍历背包容量！
+        // 只能遍历到当前物品的重量 weights[i]，小于这个重量的容量无法放入该物品，保持原值即可
+        for (int j = W; j >= weights[i]; --j) 
+        {
+            // 状态转移：保持现状，还是放入当前物品？
+            dp[j] = std::max(dp[j], dp[j - weights[i]] + values[i]);
+        }
+    }
+
+for (int i = 1; i <= n; ++i) 
+    {
+        int w = weights[i - 1]; // 当前物品重量
+        int v = values[i - 1];  // 当前物品价值
+        for (int j = 1; j <= W; ++j)
+        {
+            if (j >= w) 
+            {
+                // 容量足够，可选择放或不放
+                dp[i][j] = std::max(dp[i - 1][j], dp[i - 1][j - w] + v);
+            } 
+            else 
+            {
+                // 容量不足，只能不放
+                dp[i][j] = dp[i - 1][j];
+            }
+        }
+    }
+
+    // 【最优解回溯】找出具体放入了哪些物品
+    int j = W;
+    for (int i = n; i > 0; --i) 
+    {
+        // 如果当前状态值不等于上一行的状态值，说明放入了第 i 份物品
+        if (dp[i][j] != dp[i - 1][j]) 
+        {
+            selected_items.push_back(i - 1); // 记录物品下标
+            j -= weights[i - 1]; // 扣除对应重量
+        }
+    }
+    // 逆序回溯出来的，反转使其按升序排列
+    std::reverse(selected_items.begin(), selected_items.end());
+```
