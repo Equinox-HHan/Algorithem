@@ -554,6 +554,54 @@ int RandomSelect(int arr[],int i)
 }
 ```
 
+带记忆的递归
+3. 半数集问题：
+```
+int solve(int n)
+{
+    if(n==1)
+    {
+        return 1;
+    }
+    if(arr[n]!=0)
+    {
+        return arr[n];
+    }
+    int count=1;//包含自身
+    for(int i=1;i<=n/2;i++)
+    {
+        count+=solve(i);
+    }
+    return arr[n]=count;
+}
+```
+4. 整数因子问题
+```
+int solve(int n)
+{
+    if(n==1)
+    {
+        return 1;
+    }
+    if(memory.count[n])//这里使用unordered_map而不是vector
+    {
+        return memory[n];
+    }
+    int count=1;
+    for(int i=2;i*i<n;i++)
+    {
+        if(n%i==0)
+        {
+            count+=solve(n/i);
+            if(i*i!=n)
+            {
+                count+=solve(i);
+            }
+        }
+    }
+    return memory[n]=count;
+}
+```
 
 # 动态规划：用空间换时间的算法
 
@@ -754,3 +802,12 @@ for (int i = 1; i <= n; ++i)
     // 逆序回溯出来的，反转使其按升序排列
     std::reverse(selected_items.begin(), selected_items.end());
 ```
+
+
+# 贪心策略：
+
+**每一次抉择都在当前状态下做出最好选择，自顶向下计算不走回头路**
+
+## 贪心的核心要素：
+1. 贪心选择性质：可以通过做出局部最优达到全局最优
+2. 最优子结构：子问题的解能够凑出总问题的解
