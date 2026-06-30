@@ -811,3 +811,166 @@ for (int i = 1; i <= n; ++i)
 ## 贪心的核心要素：
 1. 贪心选择性质：可以通过做出局部最优达到全局最优
 2. 最优子结构：子问题的解能够凑出总问题的解
+
+## 典型例题
+
+1. 活动安排问题（以结束时间最早为贪心选择）
+```
+struct Activity
+{
+    int start,end,number;
+};
+bool compareactivity(const Activity &a,const Activity &b)//这个语法点很重要
+{
+    if(a.end!=b.end)
+    {
+        return a.end<b.end;
+    }
+    else
+    {
+        return a.start>b.start;
+    }
+}
+vector<int> function(vector<Activity> &activities)//建议使用lambda函数
+{
+    vector<int> select;
+    //这里有一个特判，活动为空集直接return
+    sort(activities.begin(),activities.end(),compareactivity);//所有贪心问题基本都要排序
+    select.push_back(activities[0].number);
+    int lasttime=activities[0].end;
+    for(int i=2;i<activities.size();i++)
+    {
+        if(activities[i].start>=lasttime)
+        {
+            select.push_back(activities[i].number);
+            lasttime=activities[i].end;
+        }
+    }
+    return select;
+}
+```
+
+2. 可分割背包问题（以物品性价比最高为贪心策略）
+```
+struct Item
+{
+    int weight,value;
+};
+double function(int W,vector<Item> &arr)
+{
+    sort(arr.begin(),arr.end(),[](const Item &a,const Item &b)
+    {
+        return a.value*b.weight>b.value*a.weight;//交叉乘法优化精度
+    });
+    double totalvalue=0;
+    double currentweight=0;
+    for(const auto &item:arr)
+    {
+        if(currentweight+item.weight<=W)
+        {
+            totalvalue+=item.value;
+            currentweight+=item.weight;
+        }
+        else
+        {
+            double room=W-currentweight;
+            totalvalue+=room*(double)(item.value/item.weight);
+            break;
+        }
+    }
+    return totalvalue;
+}
+```
+
+3. 集装箱装载问题（以轻度最低为贪心策略）
+```
+std::vector<int> maxLoading(int C, std::vector<int>& weights)
+{
+    // 1. 将集装箱按重量从小到大升序排序
+    std::sort(weights.begin(), weights.end());
+
+    std::vector<int> selected;
+    int currentWeight = 0;
+
+    // 2. 依次选择最轻的集装箱
+    for (int w : weights)
+    {
+        if (currentWeight + w <= C)
+        {
+            currentWeight += w;
+            selected.push_back(w);
+        }
+        else
+        {
+            // 如果最轻的也装不下了，后续的更装不下，直接结束
+            break; 
+        }
+    }
+    return selected;
+}
+```
+
+4. 删数问题（s[i]>s[i+1]则删数要用单调栈）
+```
+string function(const string &str,int k)
+{
+    string result="";
+    for(char c:str)
+    {
+        while(!result.empty()&&k>0&&result.back()>c)
+        {
+            result.pop_back();
+            k--;
+        }
+        result.push_back(c);
+    }
+    while(!result.empty()&&k>0)
+    {
+        result.pop_back();
+        k--;
+    }
+    for(int index=0;index<result.size();index++)
+    {
+        if(result[index]==0)
+        {
+            index++;
+        }
+    }
+    result=result.substr(index);
+    return result.empty()?"0":result
+}
+```
+
+4. 多处最优服务次序问题（短作业优先贪心策略）
+```
+// 计算最小平均等待时间
+double getMinAverageWaitingTime(std::vector<int>& t, int s)
+{
+    //加一个特判
+    int n = t.size();
+
+    // 1. 将所有顾客的服务时间升序排序
+    std::sort(t.begin(), t.end());
+
+    // 2. 用一个数组记录每个服务窗口当前累计的服务结束时间（即下一个在该窗口排队的人要等待的基础时间）
+    std::vector<int> server_time(s, 0);
+    
+    double total_waiting_time = 0.0;
+
+    // 3. 按贪心策略分派顾客
+    for (int i = 0; i < n; ++i)
+    {
+        int target_server = i % s; // 轮流分配到 s 个窗口
+        
+        // 当前顾客的等待时间 = 该窗口已累积时间 + 自身服务时间
+        int customer_wait = server_time[target_server] + t[i];
+        
+        total_waiting_time += customer_wait;
+
+        // 更新该窗口的累积结束时间
+        server_time[target_server] += t[i];
+    }
+
+    // 4. 返回平均等待时间
+    return total_waiting_time / n;
+}
