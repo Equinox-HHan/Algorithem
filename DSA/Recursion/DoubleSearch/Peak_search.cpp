@@ -2,48 +2,25 @@
 using namespace std;
 int FindPeakPosition(int arr[],int size)
 {
-    int l=0;int r=size-1;int mid=0;
-    int ans=-1;
-    if(size==0)
+    //修复之前存在的逻辑问题
+    if(arr==nullptr||size<=0)
     {
-        return ans;
+        return -1;
     }
-    else if(size==1)
+    int l=0,r=size-1;
+    while(l<r)
     {
-        return size; 
-    }
-    else
-    {
-        if(arr[0]>arr[1])
+        int mid=l+((r-l)>>1);//位运算优先度是低于加减运算的
+        if(arr[mid]>arr[mid+1])
         {
-            return 0;
-        }
-        else if(arr[size-2]>arr[size-1])
-        {
-            return size-1;
+            r=mid;
         }
         else
         {
-            while(l<=r)
-            {
-                mid=l+(r-l)/2;
-                if(arr[mid-1]>arr[mid])
-                {
-                    r=mid-1;
-                }
-                else if(arr[mid+1]>arr[mid])
-                {
-                    l=mid+1;
-                }
-                else
-                {
-                    ans=mid;
-                    break;
-                }
-            }
+            l=mid+1;
         }
     }
-    return ans;
+    return l;
 }
 void printArray(int arr[],int size)
 {
