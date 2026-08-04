@@ -110,3 +110,4 @@ slow指针移动（slow）是下一个存放有效元素的位置
 
 建议使用栈内存不在堆上分配：`ListNode dummy,dummy.next=*head,ListNode *cur=&dummy`
 最后绝对不要返回head而是`return dummy.next`
+
