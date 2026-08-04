@@ -111,3 +111,9 @@ slow指针移动（slow）是下一个存放有效元素的位置
 建议使用栈内存不在堆上分配：`ListNode dummy,dummy.next=*head,ListNode *cur=&dummy`
 最后绝对不要返回head而是`return dummy.next`
 
+## day17:
+1. 快慢指针：
+    - 找链表中点：链表长度为偶数下中点`fast,fast->next!=nullptr`上中点`fast->next,fast->next->next!=nullptr`
+    - 判断是否成环问题：`while(fast!=nullptr&&fast->next!=nullptr)`快指针走两步慢指针走一步
+    - 寻找入环点：快慢指针相遇后快指针从头开始移动并且步长为1，当两者相遇便是入环点[#数学证明](Verify.md)
+2. k个一组反转：模板类型题目
