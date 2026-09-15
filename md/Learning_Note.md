@@ -251,3 +251,41 @@ slow指针移动（slow）是下一个存放有效元素的位置
 
 ## day35:
 Morris遍历：[THIS](Morris.md)
+
+## day36：
+1. 树的最大深度：
+    - 前序-自顶向下：通过函数传参将父节点信息往子节点压
+    ```
+    void dfs(TreeNode* root, int depth) {
+        if (!root) return;
+        max_depth = max(max_depth, depth);
+        dfs(root->left, depth + 1);
+        dfs(root->right, depth + 1);
+    }
+    ```
+    - 后序-自底向上：
+    ```
+    int maxDepth(TreeNode* root) {
+        if (!root) return 0;
+        int left = maxDepth(root->left);
+        int right = maxDepth(root->right);
+        return max(left, right) + 1;
+    }
+    ```
+2. 树的直径：穿过节点u的最长路径长度（边数）=左子树最大深度+右子树最大深度，本质就是后序遍历+每次刷新全局max_diameter
+3. 判断平衡二叉树：判断左子树和右子树最大深度差不超过1
+    ```
+    int check(TreeNode* root) {
+        if (!root) return 0;
+
+        int left = check(root->left);
+        if (left == -1) return -1; // 左子树失衡，直接提前返回
+
+        int right = check(root->right);
+        if (right == -1) return -1; // 右子树失衡，直接提前返回
+
+        // 高度差大于 1 判定失衡，否则返回真实高度
+        if (abs(left - right) > 1) return -1;
+        return max(left, right) + 1;
+    }
+    ```
