@@ -273,6 +273,25 @@ Morris遍历：[THIS](Morris.md)
     }
     ```
 2. 树的直径：穿过节点u的最长路径长度（边数）=左子树最大深度+右子树最大深度，本质就是后序遍历+每次刷新全局max_diameter
+    ```
+    class Solution {
+    private:
+        int max_diameter = 0;
+
+        int maxDepth(TreeNode* root) {
+            if (!root) return 0;
+        
+            int left_d = maxDepth(root->left);
+            int right_d = maxDepth(root->right);
+        
+            // 经过当前节点的最长路径边数 = 左深度 + 右深度
+            max_diameter = std::max(max_diameter, left_d + right_d);
+        
+            // 向父节点返回当前节点的最大单侧深度（点数）
+            return std::max(left_d, right_d) + 1;
+        }
+    }
+    ```
 3. 判断平衡二叉树：判断左子树和右子树最大深度差不超过1
     ```
     int check(TreeNode* root) {
@@ -293,7 +312,37 @@ Morris遍历：[THIS](Morris.md)
 ## day37：
 1. 最近公共祖先LCA：后序遍历（自顶向下左右子树分治+自底向上汇总信息）
     - 终止条件:`!root||root==p||root==q`:`return root`
-    - 合并条件：左右都不为空返回当前节点，否则返回其中不为空的一侧节点
+    - 左右子树递归向下查找
+    - 合并条件：
+        1. 左右都不为空返回当前节点
+        2. 一侧非空：返回其中不为空的一侧节点
+        3. 双侧为空返回nullptr
+    ---
+    BST的最近公共祖先：
+    利用二叉搜索树的有序性直接自定向下贪心查找
+    1. 若两个目标节点值小于当前节点则向左查找
+    2. 若两个目标节点值大于当前节点则向右查找
+    3. 否则说明当前节点就是中间的公共祖先直接返回
+    ```
+    class SolutionBST {
+    public:
+        TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
+            TreeNode* curr = root;
+            while (curr != nullptr) {
+                if (p->val < curr->val && q->val < curr->val) {
+                    curr = curr->left;
+                } else if (p->val > curr->val && q->val > curr->val) {
+                    curr = curr->right;
+                } else {
+                    // 首次出现分叉，或者到达了 p / q 本身
+                    return curr;
+                }
+            }
+            return nullptr;
+        }
+    };
+    ```
+    ---
 2. 路径总和问题：DFS需要注意回溯和还原现场
     - 进入该节点时需要将节点压入路径数组，同时sum需要减去节点值
     - 当左右子节点都为空：如果sum==0则将路径数组压入总答案数组
