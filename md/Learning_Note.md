@@ -353,4 +353,52 @@ Morris遍历：[THIS](Morris.md)
 [THIS](serialize.md)
 
 
+## day42：
+>堆是一棵完全二叉树，在物理上用数组存储
+>
+>对于任意节点i：
+>
+>父节点：(i-1)/2，左右子节点：2i+1，2i+2
+>
+>最后一个非叶子节点：i=(n-2)/2
+1. 堆和堆排序
+    1. 定义：
+        1. 大根堆：父节点永远大于左右子节点，堆顶为最大节点
+        2. 小根堆：父节点永远小于左右子节点，堆顶为最小节点
+    2. 两种操作：
+        1. 上浮sift up：插入新节点时会触发上浮操作
+        2. 下沉sift down：弹出根节点与尾节点交换时会触发下沉操作
+    3. 建堆：主要关注Floyd建堆（自底向上让节点下沉）
+    
+    [关系梳理](D:\Desktop\Algorithm\md\relationship_clearify.md)
+2. STL
+cpp中的优先队列默认是大根堆，第三个比较参数改为greator是小根堆
+```
+struct Task {
+    int id;
+    int priority;
+};
+
+// 方式 1: 重载 operator<（定义在结构体内或命名空间）
+bool operator<(const Task& a, const Task& b) {
+    return a.priority < b.priority; // 优先级数字大的在堆顶
+}
+
+// 方式 2: 自定义仿函数（Functor）
+struct CompareTask {
+    bool operator()(const Task& a, const Task& b) const {
+        return a.priority > b.priority; // 优先级数字小的在堆顶（小顶堆）
+    }
+};
+std::priority_queue<Task, std::vector<Task>, CompareTask> pq;
+
+// 方式 3: Lambda 表达式（C++11/20）
+auto cmp = [](const Task& a, const Task& b) { return a.priority > b.priority; };
+std::priority_queue<Task, std::vector<Task>, decltype(cmp)> pq_lambda(cmp);
+```
+3. top-K问题的堆解法：需要的是小根堆
+    1. 先将前k个元素放入堆
+    2. 对剩下的元素进行遍历：如果大于堆顶则弹出堆顶并入堆，否则直接跳过
+    3. 遍历结束后堆内为top-K，其中堆顶为第K大元素
+
 
