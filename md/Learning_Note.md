@@ -415,4 +415,75 @@ std::priority_queue<Task, std::vector<Task>, decltype(cmp)> pq_lambda(cmp);
 3. `if(str[index])=='.'`：遍历所有分支并且尝试递归
 4. `else`：如果节点不为空直接对该唯一节点递归
 
+## day44：
+并查集：用极少的内存记录父级关系，用微秒级时间完成归类合并
+
+并查集是动态分组，闭环检测和连通性判断的最佳数据结构
+
+并查集模板：
+```
+#include <iostream>
+#include <vector>
+#include <numeric>
+
+class UnionFind {
+private:
+    std::vector<int> parent; // 记录每个人的“直接上级”是谁
+    std::vector<int> size;   // 记录以这个人作为帮主的门派里一共有多少人
+
+public:
+    // 1. 门派初始化
+    UnionFind(int n) : parent(n), size(n, 1) {
+        // 刚开始每个人都是独立的，直接上级就是自己
+        for (int i = 0; i < n; i++) {
+            parent[i] = i; 
+        }
+    }
+
+    // 2. 找总帮主 (Find) + 顺手加微信 (路径压缩)
+    int find(int i) {
+        // 如果我的直接上级就是我自己，说明我就是总帮主！
+        if (parent[i] == i) {
+            return i;
+        }
+        
+        // 核心：如果我上面还有人，我就沿着线索一直往上找
+        // 找到最终的掌门后，把我的上级直接改成掌门（parent[i] = ...）
+        // 这就是【路径压缩】：越过所有中介，直接跟大老板建立联系！
+        return parent[i] = find(parent[i]);
+    }
+
+    // 3. 两个门派合并 (Union) + 谁人多听谁的 (按大小合并)
+    bool unite(int i, int j) {
+        // 先分别找出 i 和 j 背后的大帮主是谁
+        int rootI = find(i);
+        int rootJ = find(j);
+
+        // 如果俩人的总帮主是同一个人，说明本来就是一家人，不用合并
+        if (rootI == rootJ) {
+            return false; 
+        }
+
+        // 核心【按大小合并】：比较两个帮派的总人数
+        // 保证让 rootI 永远是“人数较多的门派的帮主”
+        if (size[rootI] < size[rootJ]) {
+            std::swap(rootI, rootJ); // 如果 rootJ 人多，就反过来
+        }
+
+        // 弱肉强食：让小帮派帮主 rootJ 认大帮派帮主 rootI 做老大
+        parent[rootJ] = rootI;
+        
+        // 大帮派吸收了小帮派的所有人，人数累加
+        size[rootI] += size[rootJ];
+
+        return true;
+    }
+
+    // 4. 判断两人是不是一个门派的
+    bool isConnected(int i, int j) {
+        return find(i) == find(j);
+    }
+};
+```
+
 
