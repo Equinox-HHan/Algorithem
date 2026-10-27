@@ -17,7 +17,7 @@
     - 进行乘除运算和奇偶判断
 
 ### day3-4:
-1. GCD(GCD(a,b)==GCD(b,a%b)),LCM(GCD(a,b)×LCM(a,b)=|a×b|)
+1. `GCD(GCD(a,b)==GCD(b,a%b)),LCM(GCD(a,b)×LCM(a,b)=|a×b|)`
 2. 快速幂：时间复杂度logn
 3. 埃氏筛：素数的倍数是合数（两个优化）
 4. 同余原理（除法是特例）
@@ -370,7 +370,7 @@ Morris遍历：[THIS](Morris.md)
         2. 下沉sift down：弹出根节点与尾节点交换时会触发下沉操作
     3. 建堆：主要关注Floyd建堆（自底向上让节点下沉）
     
-    [关系梳理](D:\Desktop\Algorithm\md\relationship_clearify.md)
+    [关系梳理](relationship_clearify.md)
 2. STL
 cpp中的优先队列默认是大根堆，第三个比较参数改为greator是小根堆
 ```
@@ -485,5 +485,122 @@ public:
     }
 };
 ```
+
+## day45:
+### 并查集进阶：
+1. 连通块问题：
+    - 统计连通块数量：初始化有N个集合，每次把两个**不属于同一集合**的集合合并`N--`
+    - 统计每个连通块大小：额外开一个数组sz[]，初始化全为1，在合并时：sz[rootB]+=sz[rootA]
+2. 无向图判环：
+    - 对每个边`(u,v)`遍历：如果`find(u)==find(v)`说明已经联通
+    - 如果不属于同一集合则执行合并
+3. 等式可满足性：
+    - 第一次扫描：将所有`==`两侧的元素放入同一集合中
+    - 第二次扫描：检查所有`!=`两侧的元素
+
+### 树状数组/线段树
+1. 树状数组：每个数组元素不是单个元素，而是负责维护某个区间的和
+```
+//计算每个元素维护的区间长度
+int lowbit(int i){
+    return i&(-i);
+}
+```
+**树状数组下标起始为1**
+
+每个元素负责维护`[i-lowbit(i)+1,i]`区间的区间和
+```
+int queryPrefix(int index) {
+    int sum = 0;
+    for (int i = index; i > 0; i -= lowbit(i)) {
+        sum += tree[i];
+    }
+    return sum;
+}
+```
+```
+void add(int index, int val) {
+    for (int i = index; i <= n; i += lowbit(i)) {
+        tree[i] += val;
+    }
+}
+```
+[THIS](BIT.md)
+
+2. 线段树：
+本质是一颗数组表示的二叉树
+```
+class SegmentTree {
+private:
+    int n;
+    vector<int> tree; // 存储线段树节点的数组，大小开 4 * n
+    vector<int> data; // 原始数据
+
+    // 向上更新：由两个儿子的值更新当前节点的值
+    void pushUp(int node) {
+        tree[node] = tree[2 * node] + tree[2 * node + 1];
+    }
+
+    // 建树过程：递归地将区间一分为二
+    void build(int node, int start, int end) {
+        if (start == end) {
+            // 叶子节点，直接存原始数据
+            tree[node] = data[start];
+            return;
+        }
+        int mid = start + (end - start) / 2;
+        int leftNode = 2 * node;     // 左儿子编号
+        int rightNode = 2 * node + 1; // 右儿子编号
+
+        build(leftNode, start, mid);        // 递归建左子树
+        build(rightNode, mid + 1, end);    // 递归建右子树
+        pushUp(node);                      // 收集儿子的信息
+    }
+
+    // 单点修改递归函数
+    void update(int node, int start, int end, int idx, int val) {
+        if (start == end) {
+            // 找到了对应的叶子节点
+            tree[node] += val; // 这里演示在原值基础上增加 val
+            return;
+        }
+        int mid = start + (end - start) / 2;
+        int leftNode = 2 * node;
+        int rightNode = 2 * node + 1;
+
+        if (idx <= mid) {
+            // 要改的位置在左半区
+            update(leftNode, start, mid, idx, val);
+        } else {
+            // 要改的位置在右半区
+            update(rightNode, mid + 1, end, idx, val);
+        }
+        pushUp(node); // 子节点改完了，老子也得跟着更新
+    }
+
+    // 区间查询递归函数
+    int query(int node, int start, int end, int L, int R) {
+        // 情况 1: 当前节点管理的区间完全被 [L, R] 包裹，直接返回当前值
+        if (L <= start && end <= R) {
+            return tree[node];
+        }
+        int mid = start + (end - start) / 2;
+        int leftNode = 2 * node;
+        int rightNode = 2 * node + 1;
+        int sum = 0;
+
+        // 情况 2: [L, R] 和左半部分有交集
+        if (L <= mid) {
+            sum += query(leftNode, start, mid, L, R);
+        }
+        // 情况 3: [L, R] 和右半部分有交集
+        if (R > mid) {
+            sum += query(rightNode, mid + 1, end, L, R);
+        }
+        return sum;
+    }
+};
+```
+
 
 
