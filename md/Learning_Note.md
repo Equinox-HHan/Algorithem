@@ -672,3 +672,61 @@ private:
     }
     ```
 5. 图不连通：让每个没被标记的节点作为搜索起点，每次新的BFS/DFS就能发现一个连通分量
+
+## day47:
+
+>        ------Kahn算法：入度表+BFS------------
+>        |                                    |          
+>                                  
+>有向无环|------------------------------------->能够完成拓扑排序<==>不存在有向环  
+>        
+>        |                                    |
+>        ------DFS后序遍历（配合三色标记）-----
+
+1. Kahn核心代码
+```
+while (!q.empty()) {
+    int u = q.front();
+    q.pop();
+
+    result.push_back(u);
+
+    for (int v : graph[u]) {
+        indegree[v]--;
+
+        if (indegree[v] == 0) {
+            q.push(v);
+        }
+    }
+}
+
+// result.size() < n 表示有环
+```
+2. DFS后序核心代码
+```
+void dfs(int u) {
+    visited[u] = true;
+
+    for (int v : graph[u]) {
+        if (!visited[v]) {
+            dfs(v);
+        }
+    }
+
+    result.push_back(u);
+}
+
+// 最后 reverse(result.begin(), result.end());
+```
+3. 三色判环核心代码：
+```
+if (state[v] == 0) {
+    dfs(v);
+}
+else if (state[v] == 1) {
+    // 发现有向环
+}
+else {
+    // state[v] == 2，已经完成，不构成环
+}
+```
