@@ -732,3 +732,218 @@ else {
     // state[v] == 2，已经完成，不构成环
 }
 ```
+
+## 最小生成树MST
+**什么是最小生成树：用最少的成本（最小边权）选择n-1条边让所有顶点连通并且不形成环**
+### 1. kruskal算法
+核心思想：每次选择当前权重最小并且不会形成环的边
+
+本质是边加法，并查集负责判断是否连通并且负责维护状态
+
+`O(ElogE)`复杂度适合稀疏图
+```
+struct Edge {
+    int u, v;   // 边的两个端点
+    int w;      // 边权重
+    // 用于 sort 排序
+    bool operator<(const Edge& other) const {
+        return w < other.w;
+    }
+};
+int kruskal(int n, vector<Edge>& edges) {
+    // 1. 按照边权从小到大排序
+    sort(edges.begin(), edges.end());
+    // 2. 初始化并查集
+    DSU dsu(n);
+    int totalWeight = 0;  // 最小生成树总权重
+    int edgeCount = 0;    // 已选择的边数
+    // 3. 依次检查每一条边
+    for (const auto& e : edges) {
+        // 4. 如果两个端点不连通，就选择这条边
+        if (dsu.unite(e.u, e.v)) {
+            totalWeight += e.w;
+            edgeCount++;
+            //看并查集如何实现：总之这里要将两个点归一
+            // 5. 已经选择 n-1 条边，结束
+            if (edgeCount == n - 1) {
+                break;
+            }
+        }
+    }
+    // 图不连通，无法构成生成树
+    if (edgeCount != n - 1) {
+        return -1;
+    }
+    return totalWeight;
+}
+```
+### 2. prim算法
+核心思想：站在顶点角度不断扩建已经建立的树
+
+1. Dijkstra关注的是从一个起点出发到其他顶点的最短路径$$dist[v]=\min(dist[v],dist[u]+w(u,v))$$
+2. Prim关注的是构造一棵总边权最小的生成树$$lowcost[v]=\min(lowcost[v],w(u,v))$$
+#### 1. 邻接表+优先队列（O(ElogV)）
+```
+int prim(int n, vector<vector<pair<int, int>>>& graph) {
+    // 小根堆：优先选择权重最小的边
+    // {边权, 目标顶点}
+    priority_queue<pair<int, int>,vector<pair<int, int>>,greater<pair<int, int>>> pq;
+    // 标记顶点是否已经加入生成树
+    vector<bool> visited(n, false);
+    int totalWeight = 0;  // 最小生成树总权重
+    int count = 0;        // 已加入生成树的顶点数量
+    // 1. 随机选择 0 作为起点
+    pq.push({0, 0});
+    while (!pq.empty()) {
+        // 2. 取出当前权重最小的候选项
+        auto [w, u] = pq.top();
+        pq.pop();
+        // 3. 如果已经加入生成树，跳过
+        if (visited[u]) {
+            continue;
+        }
+        // 4. 正式加入生成树
+        visited[u] = true;
+        totalWeight += w;
+        count++;
+        // 5. 遍历 u 的所有邻居
+        for (auto [v, weight] : graph[u]) {
+            // 只考虑还没有加入生成树的顶点
+            if (!visited[v]) {
+                pq.push({weight, v});
+            }
+        }
+    }
+    // 6. 如果没有访问全部顶点，说明图不连通
+    if (count != n) {
+        return -1;
+    }
+    return totalWeight;
+}
+```
+#### 2. 邻接矩阵+数组（O(V^2)）
+```
+int primMatrix(vector<vector<int>>& graph, int n) {
+    const int INF = INT_MAX;
+    vector<int> lowcost(n, INF);
+    vector<bool> visited(n, false);
+    // 从 0 开始
+    lowcost[0] = 0;
+    int totalWeight = 0;
+    for (int i = 0; i < n; i++) {
+        int u = -1;
+        // 1. 找到未加入生成树且连接成本最小的顶点
+        for (int j = 0; j < n; j++) {
+            if (!visited[j] &&(u == -1 || lowcost[j] < lowcost[u])) {
+                u = j;
+            }
+        }
+        // 2. 找不到可加入的顶点，图不连通
+        if (u == -1 || lowcost[u] == INF) {
+            return -1;
+        }
+        // 3. 将 u 加入生成树
+        visited[u] = true;
+        totalWeight += lowcost[u];
+        // 4. 更新其他顶点的最小连接成本
+        for (int v = 0; v < n; v++) {
+            if (!visited[v] && graph[u][v] != INF) {
+                lowcost[v] = min(
+                    lowcost[v],
+                    graph[u][v]
+                );
+            }
+        }
+    }
+    return totalWeight;
+}
+```
+
+
+## 单源最短路径Dijkstra
+### 什么是单源最短路径
+给定起点`S`我们需要求：
+$$\boxed{dist[v]=\min_{P:s\rightarrow v}\sum_{e\in P}w(e)}$$
+也就是：从起点s到顶点v的所有可能路径中，选择权重总和最小的那条
+1. 单元最短路径：运行一次就能求一个起点到其他顶点的距离
+2. 任意两个顶点的最短距离：Floyd-Warshall
+### 核心的算法思想：贪心策略
+1. 将所有顶点分为两个集合
+    * 集合A-已经确定最短距离的顶点：这部分点不会再修改
+    * 集合B-没确定最短距离的顶点：目前已发现的最短路径长度
+2. 贪心选择
+    * 每次从尚未确定最短距离的顶点中，选择dist最小的顶点将它的最短距离正式确定
+    * 假设u是集合B中的距离最短的节点，如果有其他路径能够到达u则必然经过节点x：`dist[x]+positive_weight>=dist[u]`
+    * 松弛操作：尝试利用一条新的路径，让原来的估计距离变小`dist[v]=min(dist[v], dist[u]+w)`
+### Dijkstra的两种实现
+1. 数组+邻接矩阵：`O(V^2)`适合稠密图
+```
+void dijkstra(vector<vector<int>>& graph, int n, int start) {
+    // dist[i]：起点到 i 的当前最短距离
+    vector<int> dist(n, INF);
+    // visited[i]：i 的最短距离是否已经确定
+    vector<bool> visited(n, false);
+    // 起点到自己的距离为 0
+    dist[start] = 0;
+    // 每轮确定一个顶点
+    for (int i = 0; i < n; i++) {
+        //u用于记录本轮寻找的目标顶点的编号
+        int u = -1;
+        // 1. 寻找未确定且距离最小的顶点
+        for (int j = 0; j < n; j++) {
+            if (!visited[j] && (u == -1 || dist[j] < dist[u])) {
+                u = j;
+            }
+        }
+        // 2. 所有剩余顶点都不可达
+        if (u == -1 || dist[u] == INF) {
+            break;
+        }
+        // 3. 正式确定 u 的最短距离
+        visited[u] = true;
+        // 4. 遍历所有可能的邻居
+        for (int v = 0; v < n; v++) {
+            // v 尚未确定，并且 u 可以到达 v
+            if (!visited[v] && graph[u][v] != INF) {
+                // 5. 松弛操作
+                dist[v] = min(dist[v],dist[u] + graph[u][v]);
+            }
+        }
+    }
+}
+```
+2. 邻接表+优先队列（堆优化）`O(ElogV)`适合稀疏图
+```
+vector<ll> dijkstra(int n,vector<vector<pair<int, int>>>& graph,int start) {
+    // dist[i]：起点到 i 的最短距离
+    vector<ll> dist(n, INF);
+    // 小根堆：{当前距离, 当前顶点}
+    priority_queue<pair<ll, int>,vector<pair<ll, int>>,greater<pair<ll, int>>> pq;
+    // 1. 初始化起点
+    dist[start] = 0;
+    pq.push({0, start});
+    // 2. 不断取出当前距离最小的状态
+    while (!pq.empty()) {
+        auto [d, u] = pq.top();
+        pq.pop();
+        // 3. 过滤过期状态
+        if (d != dist[u]) {
+            continue;
+        }
+        // 4. 遍历 u 的所有邻居
+        for (auto [v, weight] : graph[u]) {
+            // 5. 尝试松弛
+            if (dist[u] + weight < dist[v]) {
+                dist[v] = dist[u] + weight;
+                // 6. 将更新后的状态加入小根堆
+                pq.push({dist[v], v});
+            }
+        }
+    }
+    return dist;
+}
+```
+### 其他一些细节：
+1. 如果要记录最短路径：增加parent数组，最后进行节点回溯倒序输出
+2. Dijkstra算法只适用于非负权边，负权边会使贪心性质失效
+3. 如果是无向图，邻接表要互相存储两个方向
