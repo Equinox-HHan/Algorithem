@@ -947,3 +947,129 @@ vector<ll> dijkstra(int n,vector<vector<pair<int, int>>>& graph,int start) {
 1. 如果要记录最短路径：增加parent数组，最后进行节点回溯倒序输出
 2. Dijkstra算法只适用于非负权边，负权边会使贪心性质失效
 3. 如果是无向图，邻接表要互相存储两个方向
+
+## day51
+### Bellman-Ford/SPFA：解决Dijkstra无法处理负权边的不足
+1. **Bellman-Ford：**
+    * 为什么贪心会失效：有负权边时“当前最近的点就是最终最短路”这个贪心假设不成立，我们必须允许一个点的距离被反复修改变小
+    * 那应该如何处理呢：遍历全图`n-1`条边，把所有边都拿来松弛一遍，最后总能找到最短路径
+    * 如何判断负权环：在`n−1`轮全部结束后，再额外做第`n`轮遍历所有边，如果此时依然有边满足`dis[u]+w<dis[v]`，说明肯定有负权环！
+
+      如果有负权环：每次走这个环都会使得总最短路径减少，所以满足松弛公式说明有负权环
+```
+    dis[1] = 0; // 起点 1 到自己的距离为 0
+    // 1. 最多进行 n - 1 轮松弛
+    for (int i = 1; i <= n - 1; i++) {
+        bool updated = false; // 记录本轮是否有更新，用于优化提前退出
+        for (const auto& e : edges) {
+            // 注意：必须确保 dis[e.u] != INF，防止无穷大加上负数导致误更新
+            if (dis[e.u] != INF && dis[e.u] + e.w < dis[e.v]) {
+                dis[e.v] = dis[e.u] + e.w;
+                updated = true;
+            }
+        }
+        if (!updated) break; // 如果一整轮都没更新，说明已经全部收敛，直接结束
+    }
+    // 2. 第 n 轮检查是否存在负权环
+    bool has_negative_cycle = false;
+    for (const auto& e : edges) {
+        if (dis[e.u] != INF && dis[e.u] + e.w < dis[e.v]) {
+            has_negative_cycle = true;
+            break;
+        }
+    }
+```
+2. **SPFA**
+    * Bellman-Ford要遍历所有边哪怕某些边没有被执行松弛操作
+    * SPFA核心思想：只有`dis[u]`刚刚变小的点`u`，它连出去的边`u->v`才有可能变小
+    * 使用队列将“刚刚变小的点”存起来，每次取出队头的点做松弛操作
+```
+    queue<int> q;
+    dis[1] = 0;
+    q.push(1);
+    in_queue[1] = true;
+    bool has_negative_cycle = false;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false; // 出队了，取消标记（以后若再变小还可以再入队）
+        for (const auto& e : adj[u]) {
+            int v = e.to;
+            int w = e.w;
+            // 如果经过 u 到 v 更近，就松弛
+            if (dis[u] + w < dis[v]) {
+                dis[v] = dis[u] + w;
+                cnt[v] = cnt[u] + 1; // 边数 = u 的边数 + 1
+                // 核心判负环：无负环时最多经过 n-1 条边；若 >= n 说明一定绕环了
+                if (cnt[v] >= n) {
+                    has_negative_cycle = true;
+                    break;
+                }
+
+                // 只有当 v 不在队列里时才入队，避免队列里堆满重复的 v
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                }
+            }
+        }
+        if (has_negative_cycle) break;
+    }
+```
+### Floyd：任意两点i到j的最距离
+核心思想：逐步开放中转站使得从`i`到`j`两点之间距离最短
+1. 先尝试开放中转站`1`：看`i->1->j`的走法会不会比原先走法更短
+2. 接着开放中转站`2`：看在走法1的基础上`i->2->j`会不会更短
+3. 以此类推开放全部中转站寻找最短路径
+
+**k在最外层是为了保证在用到d[i][k]和d[k][j]时，它们已经完成了前k-1阶段的所有中转拼接**
+```
+ for (int k = 1; k <= n; k++) {         // 中转点 k 必须在最外层！
+        for (int i = 1; i <= n; i++) {     // 起点 i
+            for (int j = 1; j <= n; j++) { // 终点 j
+                if (d[i][k] != INF && d[k][j] != INF) {
+                    if (d[i][k] + d[k][j] < d[i][j]) {
+                        d[i][j] = d[i][k] + d[k][j];
+                        path[i][j] = k; // 记录 i 到 j 是经过 k 中转才变短的
+                    }
+                }
+            }
+        }
+    }
+
+```
+### 染色法判定二分图
+1. 关于二分图的定义
+如果能把一张无向图的所有顶点分成两个互不相交的集合A和B，使得图中每一条边都是连接A中的一个点和B中的一个点（集合内部没有任何边相连）这张图就是二分图
+
+**一张图是二分图<->图中不含奇数长度的环**
+
+2. 染色法流程
+    1. 遍历所有点，只要遇到`color[i] == 0`，就以它为起点染成颜色1，开始DFS
+
+    2. 在 DFS 访问节点 u 的所有邻居 v 时：
+        * 如果 v 还没染色（color[v] == 0）：把它染成和 u 相反的颜色（3 - color[u]，这样 1 变 2，2 变 1），并继续递归 dfs(v)
+        * 如果 v 已经染过色，且 color[v] == color[u]：相邻两点颜色相同，发生冲突！ 直接返回 false（不是二分图）
+
+    3. 所有点都顺利染色且无冲突，返回 true
+```
+bool dfs(int u, int c, const vector<vector<int>>& adj, vector<int>& color) {
+    color[u] = c; // 给当前点上色
+
+    // 遍历 u 的所有邻居 v
+    for (int v : adj[u]) {
+        if (color[v] == 0) {
+            // 情况 1：邻居 v 还没染过色，就递归把它染成相反的颜色 (3 - c)
+            bool ok = dfs(v, 3 - c, adj, color);
+            if (!ok) return false; // 只要下面的递归发现撞色，立刻层层向上返回 false
+        } 
+        else if (color[v] == c) {
+            // 情况 2：邻居 v 已经染过色了，而且颜色和自己一模一样 -> 撞色冲突！
+            return false;
+        }
+        // 情况 3：color[v] == 3 - c（已经染了相反的颜色），说明没问题，什么都不用做
+    }
+    return true;
+}
+```
